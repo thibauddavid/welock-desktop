@@ -1,0 +1,11 @@
+Website = "https://github.com/thibauddavid/welock-desktop"
+
+[Details]
+Icon = "Icon.png"
+Name = "WeLock"
+ID = "com.welock.desktop"
+Version = "0.1.1"
+Build = 4
+
+[Migrations]
+fyneDo = true

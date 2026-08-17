@@ -1,0 +1,29 @@
+# Binaries
+/welock-desktop
+/WeLock
+/welock-sidecar
+/screenshots
+*.exe
+*.test
+*.out
+
+# ...but the committed opaque engine helper binaries ARE tracked (they are the
+# app's engine, shipped like a web client commits a prebuilt wasm module).
+!internal/app/sidecar/bin/
+!internal/app/sidecar/bin/*
+
+# Packaged apps
+/WeLock.app/
+/*.dmg
+/dist/
+/fyne-cross/
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Local session/token store (never commit credentials)
+session.json

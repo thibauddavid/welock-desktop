@@ -1,0 +1,105 @@
+name: Release
+
+# Builds native desktop packages for macOS and Windows. Fyne + tinygo-bluetooth need
+# CGO and platform SDKs, so each OS is packaged on its own runner (no cross-compiling).
+#
+# The engine is a prebuilt, opaque helper binary committed under
+# internal/app/sidecar/bin (embedded via go:embed), so this build needs NO access to any
+# private repo — no sibling checkouts, no token. Regenerate the helper on a core bump with
+# tools/build-sidecar.sh (the only step that needs the engine source).
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    # Binds to the "Prod" GitHub Environment so its AMPLITUDE_API_KEY secret is injected.
+    # Environment secrets are ONLY visible to jobs that declare the environment.
+    environment: Prod
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: darwin
+          - os: windows-latest
+            target: windows
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache-dependency-path: go.sum
+
+      - name: Ensure MinGW (Windows cgo)
+        if: matrix.target == 'windows'
+        run: choco install mingw -y
+
+      - name: Install Fyne CLI
+        shell: bash
+        run: |
+          go install fyne.io/tools/cmd/fyne@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Package (macOS)
+        if: matrix.target == 'darwin'
+        env:
+          # Baked into official release builds only. Absent on forks/PRs (no secret) →
+          # empty key → analytics is a hard no-op. See internal/analytics.
+          AMPLITUDE_API_KEY: ${{ secrets.AMPLITUDE_API_KEY }}
+        run: |
+          export GOFLAGS="-ldflags=-X=github.com/thibauddavid/welock-desktop/internal/analytics.apiKey=${AMPLITUDE_API_KEY}"
+          fyne package -os darwin -tags tinygobt
+          # CoreBluetooth requires a usage-description string or it is silently denied.
+          /usr/libexec/PlistBuddy -c \
+            'Add :NSBluetoothAlwaysUsageDescription string "WeLock uses Bluetooth to talk to your locks."' \
+            WeLock.app/Contents/Info.plist
+          # Ad-hoc sign AFTER editing the bundle (any change invalidates a signature). This
+          # is NOT Developer ID / notarization: downloaders still see "unidentified developer"
+          # (right-click → Open), but not the "damaged" wall an unsigned arm64 app hits.
+          codesign --force --deep --sign - WeLock.app
+          ditto -c -k --sequesterRsrc --keepParent WeLock.app WeLock-macos.zip
+
+      - name: Package (Windows)
+        if: matrix.target == 'windows'
+        shell: bash
+        env:
+          AMPLITUDE_API_KEY: ${{ secrets.AMPLITUDE_API_KEY }}
+        run: |
+          export GOFLAGS="-ldflags=-X=github.com/thibauddavid/welock-desktop/internal/analytics.apiKey=${AMPLITUDE_API_KEY}"
+          fyne package -os windows -tags tinygobt
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: welock-${{ matrix.target }}
+          path: |
+            WeLock-macos.zip
+            WeLock.exe
+          if-no-files-found: ignore
+
+  # Publish ONCE, after both OS legs finish. Doing this inside the matrix would race the
+  # two legs creating the same release (flickering tag / duplicate). Runs only on tags.
+  release:
+    needs: package
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/**/*
