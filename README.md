@@ -8,6 +8,15 @@ Built with [Fyne](https://fyne.io) and native Bluetooth (CoreBluetooth on macOS,
 Windows). It shares the same engine as the WeLock web and mobile clients, so everything
 behaves identically across platforms.
 
+## Download
+
+Grab the latest build from the [**Releases**](../../releases/latest) page:
+
+- **macOS** — [WeLock-macos.zip](../../releases/latest/download/WeLock-macos.zip)
+- **Windows 10+** — [WeLock.exe](../../releases/latest/download/WeLock.exe)
+
+First launch needs a quick one-time approval — see [Install](#install).
+
 ## Screenshots
 
 > All data below is mocked/anonymized.
@@ -63,7 +72,7 @@ behaves identically across platforms.
 
 ## Install
 
-Download the latest build for your platform from the [Releases](../../releases) page:
+After [downloading](#download) a build:
 
 - **macOS** — the app is ad-hoc signed but not notarized, so macOS blocks it the first time.
   You only need to do this once:
