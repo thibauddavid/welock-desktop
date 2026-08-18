@@ -65,13 +65,15 @@ behaves identically across platforms.
 
 Download the latest build for your platform from the [Releases](../../releases) page:
 
-- **macOS** — the app isn't notarized yet, so on first launch **right-click `WeLock.app` → Open**
-  (not a double-click) and confirm. If macOS still says it "is damaged", clear the download
-  quarantine and open it:
-  ```bash
-  xattr -dr com.apple.quarantine /path/to/WeLock.app && open /path/to/WeLock.app
-  ```
-  Then allow Bluetooth when prompted.
+- **macOS** — the app is ad-hoc signed but not notarized, so macOS blocks it the first time.
+  You only need to do this once:
+  1. Unzip `WeLock-macos.zip`, then **right-click (or ⌥-click) `WeLock.app` → Open**.
+  2. A dialog says it can't verify the developer — dismiss it.
+  3. Open **System Settings → Privacy & Security**, scroll to the **Security** section, and
+     next to *"WeLock was blocked…"* click **Open Anyway**, then confirm with **Open**.
+
+  (On macOS 12 or earlier: **System Preferences → Security & Privacy → General → Open Anyway**.)
+  Allow Bluetooth when prompted.
 - **Windows 10+** — run `WeLock.exe` (SmartScreen may warn on an unsigned build → *More info → Run anyway*).
 
 ## Building from source
