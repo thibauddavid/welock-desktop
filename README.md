@@ -1,5 +1,7 @@
 # WeLock Desktop
 
+![Status: beta](https://img.shields.io/badge/status-beta-orange) [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](../../pulls) ![Platforms: macOS | Windows](https://img.shields.io/badge/platforms-macOS%20%7C%20Windows-lightgrey)
+
 Control your **WeLock / AireKey** smart locks from your Mac or Windows PC — sign in, see
 your locks and gateways, and unlock them **remotely through a gateway** or **directly over
 Bluetooth**, all from a clean native desktop app.
@@ -7,6 +9,10 @@ Bluetooth**, all from a clean native desktop app.
 Built with [Fyne](https://fyne.io) and native Bluetooth (CoreBluetooth on macOS, WinRT on
 Windows). It shares the same engine as the WeLock web and mobile clients, so everything
 behaves identically across platforms.
+
+> ⚠️ **Beta.** This is an independent, community-built client, tested on only a handful of
+> locks and gateways so far — expect rough edges. If something doesn't work on your hardware,
+> please [open an issue](../../issues); bug reports and pull requests are very welcome.
 
 ## Download
 
