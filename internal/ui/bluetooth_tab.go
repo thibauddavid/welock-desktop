@@ -201,7 +201,7 @@ func newBleCredentials(dc *deviceCtx, addr func() (string, bool), busy func(on b
 		openForm(dc.win, "Add PIN over BLE",
 			[]*widget.FormItem{
 				widget.NewFormItem("New PIN", pin),
-				widget.NewFormItem("Validity", pinPresets.sel),
+				widget.NewFormItem("Validity", pinPresets.control()),
 				widget.NewFormItem("User", user),
 			},
 			func() {
@@ -213,7 +213,11 @@ func newBleCredentials(dc *deviceCtx, addr func() (string, bool), busy func(on b
 					dc.toast("Invalid PIN", msg)
 					return
 				}
-				start, end := pinPresets.window()
+				start, end, wmsg := pinPresets.window()
+				if wmsg != "" {
+					dc.toast("Add PIN", wmsg)
+					return
+				}
 				u := strings.TrimSpace(user.Text)
 				busy(true, "Adding PIN over BLE…")
 				runAsync(dc.win,
@@ -239,7 +243,7 @@ func newBleCredentials(dc *deviceCtx, addr func() (string, bool), busy func(on b
 		openForm(dc.win, "Add access card over BLE",
 			[]*widget.FormItem{
 				widget.NewFormItem("Card number", cardNo),
-				widget.NewFormItem("Validity", cardPresets.sel),
+				widget.NewFormItem("Validity", cardPresets.control()),
 				widget.NewFormItem("User", user),
 			},
 			func() {
@@ -247,7 +251,11 @@ func newBleCredentials(dc *deviceCtx, addr func() (string, bool), busy func(on b
 				if !ok {
 					return
 				}
-				start, end := cardPresets.window()
+				start, end, wmsg := cardPresets.window()
+				if wmsg != "" {
+					dc.toast("Add card", wmsg)
+					return
+				}
 				u := strings.TrimSpace(user.Text)
 				busy(true, "Adding card over BLE…")
 				runAsync(dc.win,

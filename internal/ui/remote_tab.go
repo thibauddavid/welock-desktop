@@ -425,7 +425,7 @@ func (dc *deviceCtx) addGatewayPin(box *fyne.Container, reload func()) {
 	openForm(dc.win, "Add temporary PIN",
 		[]*widget.FormItem{
 			widget.NewFormItem("PIN", pin),
-			widget.NewFormItem("Validity", presets.sel),
+			widget.NewFormItem("Validity", presets.control()),
 			widget.NewFormItem("Label", label),
 		},
 		func() {
@@ -433,7 +433,11 @@ func (dc *deviceCtx) addGatewayPin(box *fyne.Container, reload func()) {
 				dc.toast("Invalid PIN", msg)
 				return
 			}
-			start, end := presets.window()
+			start, end, wmsg := presets.window()
+			if wmsg != "" {
+				dc.toast("Add PIN", wmsg)
+				return
+			}
 			// The gateway op writes the cloud record itself (label = remark, a server-assigned
 			// slot as its index), so there is NO AddMember mirror — delete keys on the gateway's
 			// own index. See reverse-engineering/docs/CREDENTIALS.md §2a.
@@ -462,12 +466,16 @@ func (dc *deviceCtx) addGatewayCard(box *fyne.Container, reload func()) {
 	openForm(dc.win, "Add temporary card",
 		[]*widget.FormItem{
 			widget.NewFormItem("Card number", cardNum),
-			widget.NewFormItem("Validity", presets.sel),
+			widget.NewFormItem("Validity", presets.control()),
 			widget.NewFormItem("Label", label),
 		},
 		func() {
 			l := strings.TrimSpace(label.Text)
-			start, end := presets.window()
+			start, end, wmsg := presets.window()
+			if wmsg != "" {
+				dc.toast("Add card", wmsg)
+				return
+			}
 			cn := strings.TrimSpace(cardNum.Text)
 			// condition 255 = "every day". UfunAddCard carries no label field, so we mirror a
 			// cloud record filed under the label (its `user` slot) with the card number as the

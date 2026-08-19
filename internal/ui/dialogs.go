@@ -169,13 +169,17 @@ func newAddTempPassword(dc *deviceCtx, onDone func()) {
 
 	content := container.NewVBox(
 		caption("Generates a time-limited PIN for this lock."),
-		field("Validity", presets.sel),
+		field("Validity", presets.control()),
 		field("Type", typ),
 		field("Remark", remark),
 	)
 
 	d := formDialog(dc.win, "Add temporary password", "Create", theme.ContentAddIcon(), content, func() {
-		start, end := presets.window()
+		start, end, wmsg := presets.window()
+		if wmsg != "" {
+			dc.toast("Temporary password", wmsg)
+			return
+		}
 		t := 0
 		if typ.SelectedIndex() == 1 {
 			t = 1
@@ -214,7 +218,7 @@ func newAddPermission(dc *deviceCtx, onDone func()) {
 		caption("Share this lock with another WeLock account."),
 		field("Account", account),
 		field("Role", role),
-		field("Validity", presets.sel),
+		field("Validity", presets.control()),
 		field("Unlocks", unlocks),
 		caption("0 means unlimited unlocks."),
 		field("Remark", remark),
@@ -229,7 +233,11 @@ func newAddPermission(dc *deviceCtx, onDone func()) {
 		if role.SelectedIndex() == 1 {
 			roleID = 2
 		}
-		begin, end := presets.window()
+		begin, end, wmsg := presets.window()
+		if wmsg != "" {
+			dc.toast("Share", wmsg)
+			return
+		}
 		n, _ := strconv.Atoi(strings.TrimSpace(unlocks.Text))
 		runAsync(dc.win,
 			func() (string, error) {

@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -313,13 +314,24 @@ func promptText(win fyne.Window, title, label, initial string, onOK func(string)
 		}, win)
 }
 
-// presetPicker is a validity-preset dropdown plus a window() resolver. It holds the core
-// so window() resolves the selected preset via the helper (the rule lives there).
+// presetPicker is a validity-preset dropdown plus a window() resolver. Beyond the core's
+// canonical presets it offers a "Custom…" option that unlocks the From/Until datetime
+// fields for an arbitrary window. It holds the core so preset windows resolve via the
+// helper (the rule lives there); only the custom window is computed locally from input.
 type presetPicker struct {
-	sel     *widget.Select
-	byLabel map[string]string
-	core    *app.Core
+	sel        *widget.Select
+	byLabel    map[string]string
+	core       *app.Core
+	fromEntry  *widget.Entry
+	untilEntry *widget.Entry
+	onChange   func()
 }
+
+// customPresetLabel is the extra dropdown entry that enables the datetime fields.
+const customPresetLabel = "Custom…"
+
+// customTimeLayout is the accepted/displayed datetime format (local time).
+const customTimeLayout = "2006-01-02 15:04"
 
 // presetSelect builds a validity-preset picker (defaults to the first preset) from the
 // core's canonical preset list. onChange is invoked (may be nil) on selection change.
@@ -336,25 +348,90 @@ func presetSelectExcept(core *app.Core, onChange func(), exclude ...string) *pre
 	}
 	var labels []string
 	byLabel := map[string]string{}
-	for _, p := range core.ValidityPresets() {
-		if skip[p.Key] {
+	for _, pr := range core.ValidityPresets() {
+		if skip[pr.Key] {
 			continue
 		}
-		labels = append(labels, p.Label)
-		byLabel[p.Label] = p.Key
+		labels = append(labels, pr.Label)
+		byLabel[pr.Label] = pr.Key
 	}
-	sel := widget.NewSelect(labels, func(string) {
-		if onChange != nil {
-			onChange()
-		}
-	})
+	labels = append(labels, customPresetLabel)
+
+	p := &presetPicker{
+		byLabel:    byLabel,
+		core:       core,
+		onChange:   onChange,
+		fromEntry:  widget.NewEntry(),
+		untilEntry: widget.NewEntry(),
+	}
+	p.fromEntry.SetPlaceHolder(customTimeLayout)
+	p.untilEntry.SetPlaceHolder(customTimeLayout)
+	p.sel = widget.NewSelect(labels, func(string) { p.reflect() })
 	if len(labels) > 0 {
-		sel.SetSelectedIndex(0)
+		p.sel.SetSelectedIndex(0) // fires reflect() to seed the date fields
 	}
-	return &presetPicker{sel: sel, byLabel: byLabel, core: core}
+	return p
 }
 
-// window resolves the current preset selection into a [start,end] unix-second window.
-func (p *presetPicker) window() (start, end int64) {
-	return p.core.ValidityWindow(p.byLabel[p.sel.Selected], time.Now().Unix())
+// reflect syncs the date fields to the current selection: a preset fills them (read-only)
+// with its resolved window so the user sees the real dates; "Custom…" enables them for
+// editing (seeding sensible defaults the first time). Then it fires the caller's onChange.
+func (p *presetPicker) reflect() {
+	if p.sel.Selected == customPresetLabel {
+		if strings.TrimSpace(p.fromEntry.Text) == "" {
+			p.fromEntry.SetText(time.Now().Format(customTimeLayout))
+		}
+		if strings.TrimSpace(p.untilEntry.Text) == "" {
+			p.untilEntry.SetText(time.Now().Add(7 * 24 * time.Hour).Format(customTimeLayout))
+		}
+		p.fromEntry.Enable()
+		p.untilEntry.Enable()
+	} else {
+		start, end := p.core.ValidityWindow(p.byLabel[p.sel.Selected], time.Now().Unix())
+		p.fromEntry.SetText(fmtLayout(start))
+		p.untilEntry.SetText(fmtLayout(end))
+		p.fromEntry.Disable()
+		p.untilEntry.Disable()
+	}
+	if p.onChange != nil {
+		p.onChange()
+	}
+}
+
+// control is the widget to place in a form's "Validity" row: the preset dropdown above a
+// two-column From/Until pair (read-only for presets, editable for "Custom…").
+func (p *presetPicker) control() fyne.CanvasObject {
+	return container.NewVBox(
+		p.sel,
+		container.NewGridWithColumns(2,
+			container.NewVBox(caption("From"), p.fromEntry),
+			container.NewVBox(caption("Until"), p.untilEntry),
+		),
+	)
+}
+
+// window resolves the current selection into a [start,end] unix-second window. msg != ""
+// reports an invalid custom range (only possible in "Custom…" mode).
+func (p *presetPicker) window() (start, end int64, msg string) {
+	if p.sel.Selected == customPresetLabel {
+		s, err1 := time.ParseInLocation(customTimeLayout, strings.TrimSpace(p.fromEntry.Text), time.Local)
+		e, err2 := time.ParseInLocation(customTimeLayout, strings.TrimSpace(p.untilEntry.Text), time.Local)
+		if err1 != nil || err2 != nil {
+			return 0, 0, "Enter From and Until as " + customTimeLayout + "."
+		}
+		if !e.After(s) {
+			return 0, 0, "Until must be after From."
+		}
+		return s.Unix(), e.Unix(), ""
+	}
+	start, end = p.core.ValidityWindow(p.byLabel[p.sel.Selected], time.Now().Unix())
+	return start, end, ""
+}
+
+// fmtLayout renders a unix-second time in the custom layout; 0 (no expiry) as a word.
+func fmtLayout(ts int64) string {
+	if ts == 0 {
+		return "no expiry"
+	}
+	return time.Unix(ts, 0).Format(customTimeLayout)
 }

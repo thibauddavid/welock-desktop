@@ -33,7 +33,9 @@ type DeviceListItem struct {
 	Battery      *int   `json:"battery,omitempty"`
 	Type         int    `json:"type,omitempty"`
 	GatewayModel string `json:"gatewayModel,omitempty"`
-	DeviceModel  string `json:"deviceModel,omitempty"`
+	// The raw devices list names this "model" (not "deviceModel"); the mismatch left it
+	// empty, which silently skipped ValidatePin's TOUCA-keypad 0–6 rule. See PIN validation.
+	DeviceModel string `json:"model,omitempty"`
 }
 
 // MintResult is the command "mint" the cloud returns for a BLE/remote credential
