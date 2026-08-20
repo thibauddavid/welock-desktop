@@ -4,8 +4,8 @@ Website = "https://github.com/thibauddavid/welock-desktop"
 Icon = "Icon.png"
 Name = "WeLock"
 ID = "com.welock.desktop"
-Version = "0.1.1"
-Build = 4
+Version = "0.1.2"
+Build = 5
 
 [Migrations]
 fyneDo = true
