@@ -398,15 +398,14 @@ func (p *presetPicker) reflect() {
 	}
 }
 
-// control is the widget to place in a form's "Validity" row: the preset dropdown above a
-// two-column From/Until pair (read-only for presets, editable for "Custom…").
+// control is the widget to place in a form's "Validity" row: the preset dropdown above
+// full-width From and Until rows, each on its own line (read-only for presets, editable
+// for "Custom…").
 func (p *presetPicker) control() fyne.CanvasObject {
 	return container.NewVBox(
 		p.sel,
-		container.NewGridWithColumns(2,
-			container.NewVBox(caption("From"), p.fromEntry),
-			container.NewVBox(caption("Until"), p.untilEntry),
-		),
+		field("From", p.fromEntry),
+		field("Until", p.untilEntry),
 	)
 }
 

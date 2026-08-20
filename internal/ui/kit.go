@@ -232,11 +232,20 @@ func pageHeader(title, subtitle string, trailing ...fyne.CanvasObject) fyne.Canv
 // onConfirm runs only when the user confirms. Use it for focused actions instead of
 // stacking inline forms on a screen.
 func openForm(win fyne.Window, title string, items []*widget.FormItem, onConfirm func()) {
-	dialog.ShowForm(title, "Confirm", "Cancel", items, func(ok bool) {
+	d := dialog.NewForm(title, "Confirm", "Cancel", items, func(ok bool) {
 		if ok && onConfirm != nil {
 			onConfirm()
 		}
 	}, win)
+	// dialog.ShowForm auto-sizes to the content's min width, which is too narrow for the
+	// datetime fields; give every add form a comfortable minimum.
+	min := d.MinSize()
+	w := float32(520)
+	if min.Width > w {
+		w = min.Width
+	}
+	d.Resize(fyne.NewSize(w, min.Height))
+	d.Show()
 }
 
 // openView shows arbitrary content in a roomy, dismissable modal (for lists/results).
